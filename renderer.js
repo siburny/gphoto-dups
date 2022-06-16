@@ -1,124 +1,97 @@
-const path = require('path');
-const fs = require('fs');
 const storage = require('./storage');
-const Photos = require('googlephotos');
-const http = require('http');
-const url = require('url');
-const destroyer = require('server-destroy');
-const shell = require('electron').shell;
-
-const {
-  google
-} = require('googleapis');
-const {
-  start
-} = require('repl');
-
-let keys = {
-  client_id: '',
-  client_secret: '',
-  redirect_uris: ['']
-};
-
-const keyPath = path.join(__dirname, 'db', 'oauth2.keys.json');
-if (fs.existsSync(keyPath)) {
-  keys = require(keyPath).web;
-}
-
-const oauth2Client = new google.auth.OAuth2(
-  keys.client_id,
-  keys.client_secret,
-  keys.redirect_uris[0]
-);
-
-google.options({
-  auth: oauth2Client
-});
-
-var people = google.people({
-  version: 'v1'
-});
+const { distance } = require('mathjs');
+const fs = require('fs');
+const { EOL } = require('os');
 
 // *********
-// Functions 
+// Functions
 // *********
 
-/**
- * Open an http server to accept the oauth callback. In this simple example, the only request to our webserver is to /callback?code=<code>
- */
-async function authenticate(scopes) {
-  return new Promise((resolve, reject) => {
-    const tokenPath = path.join(__dirname, 'db', 'access_token.json');
-    if (fs.existsSync(tokenPath)) {
-      const tokens = JSON.parse(fs.readFileSync(tokenPath));
-      oauth2Client.setCredentials(tokens);
+var it;
+async function start() {
+  fs.writeFileSync(
+    'output.html',
+    '<html><body><h1>Dups</h1><table border="1"><th style="width:50px;">d</th><th>First</th><th>Dup</th>'
+  );
 
-      return resolve(oauth2Client);
-    }
+  const ret = [];
 
-    const authorizeUrl = oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: scopes.join(' '),
-    });
+  try {
+    it = storage.data.createReadStream();
+    it.on('data', async function (data) {
+      if (data.key.substring(0, 9) != 'mediaitem') return;
 
-    const server = http
-      .createServer(async (req, res) => {
-        try {
-          if (req.url.indexOf('/oauth2callback') > -1) {
-            const qs = new url.URL(req.url, 'http://localhost:3000')
-              .searchParams;
-            res.end('Authentication successful! Please return to the console.');
-            server.destroy();
-            const {
-              tokens
-            } = await oauth2Client.getToken(qs.get('code'));
+      const value = JSON.parse(data.value);
 
-            fs.writeFileSync(tokenPath, JSON.stringify(tokens));
+      if (value.score.length != 108) {
+        //console.log('skipping record: ' + data.key);
+        return;
+      }
 
-            oauth2Client.setCredentials(tokens);
-            resolve(oauth2Client);
-          }
-        } catch (e) {
-          reject(e);
-        }
-      })
-      .listen(3000, () => {
-        $('#login').css('display', 'block');
-        $('#link').data('link', authorizeUrl);
+      ret.push({
+        key: data.key,
+        score: value.score,
+        path: value.path,
+        productUrl: value.productUrl,
+        mediaMetadata: value.mediaMetadata,
       });
-    destroyer(server);
-  });
+    });
+    it.on('error', function (err) {
+      console.error('Oh my!', err);
+    });
+    it.on('end', function () {
+      console.log('Loaded: ' + ret.length + ' photos');
+
+      search(ret);
+    });
+  } catch (err) {
+    console.log('Opps!', err);
+  }
 }
 
-async function app() {
-  await login();
-  await show()
+async function search(ret) {
+  //fs.writeFileSync('dups.txt', '');
+
+  console.log('Searching ...');
+  for (let q1 = 0; q1 < ret.length - 1; q1++) {
+    for (let q2 = q1 + 1; q2 < ret.length - 1; q2++) {
+      try {
+        let d = distance(ret[q1].score, ret[q2].score);
+        if (d < 1000) {
+          //fs.appendFileSync('dups.txt', ret[q2].productUrl + EOL);
+
+          console.log('Found - index:' + q1);
+          fs.appendFileSync(
+            'output.html',
+            '<tr><td>' +
+              d +
+              '</td><td><a target="_blank" href="' +
+              ret[q1].productUrl +
+              '"><img src="' +
+              ret[q1].path +
+              '" width="250" /></a></td><td><a target="_blank" href="' +
+              ret[q2].productUrl +
+              '"><img src="' +
+              ret[q2].path +
+              '" width="250" /></a></td><td>' +
+              q1 +
+              '</td></tr>' +
+              EOL
+          );
+
+          try {
+            await storage.data.del(ret[q1].key);
+            await storage.data.del(ret[q2].key);
+          } catch (e) {}
+       
+        
+          break;
+        }
+      } catch (e) {
+        console.log('error', e);
+      }
+    }
+  }
 }
 
-async function show() {
-  $('#app').css('display', 'block');
-  $('#start').on('click', start);
-}
-
-var photos
-function start() {
-  photos = new Photos(oauth2Client.credentials.access_token);
-}
-
-async function login() {
-  const res = await people.people.get({
-    resourceName: 'people/me',
-    personFields: 'emailAddresses,names,photos',
-  });
-
-  const displayName = res.data.names[0].displayName;
-  $('#name').text('Welcome, ' + displayName + '!');
-}
-
-const scopes = [
-  'https://www.googleapis.com/auth/userinfo.profile',
-  'https://www.googleapis.com/auth/photoslibrary'
-];
-authenticate(scopes)
-  .then(() => app())
-  .catch(console.error);
+start();
