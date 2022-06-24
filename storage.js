@@ -1,9 +1,9 @@
 
 class Storage {
   constructor() {
-    const level = require('level');
+    const { Level } = require('level');
 
-    this.data = level('./db/data/');
+    this.data = new Level('./db/data/');
   }
 }
 

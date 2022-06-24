@@ -5,12 +5,10 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "dependencies": {
-    "chromedriver": "^98.0.1",
     "googleapis": "^67.1.0",
     "googlephotos": "github:siburny/google-photos",
-    "level": "^7.0.1",
+    "level": "^8.0.0",
     "mathjs": "^10.1.1",
-    "selenium-webdriver": "^4.1.1",
     "server-destroy": "^1.0.1"
   }
 }

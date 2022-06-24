@@ -16,6 +16,9 @@ let keys = {
   redirect_uris: [''],
 };
 
+var crypto = require('crypto');
+const CURRENT_TAG = crypto.randomBytes(20).toString('hex');
+
 const keyPath = path.join(__dirname, 'db', 'oauth2.keys.json');
 if (fs.existsSync(keyPath)) {
   keys = require(keyPath).web;
@@ -76,8 +79,7 @@ async function authenticate(scopes) {
         }
       })
       .listen(3000, () => {
-        $('#login').css('display', 'block');
-        $('#link').data('link', authorizeUrl);
+        console.log("Login URL: ", authorizeUrl);
       });
     destroyer(server);
   });
@@ -131,6 +133,7 @@ async function start() {
 
       count += res.mediaItems.length;
 
+      /*** DEBUG ***/
       // if (count > 500) {
       //   console.log('Limit is reached.');
       //   break;
@@ -183,24 +186,52 @@ async function store_results(res) {
         );
       }
 
-      await storage.data.put(
-        'mediaitem-' + res.mediaItems[i].id,
-        JSON.stringify({ path: res.mediaItems[i].baseUrl, score: score })
-      );
+      let value = {
+        score: score,
+        path: res.mediaItems[i].baseUrl + '=w521-h512',
+        mediaMetadata: res.mediaItems[i].mediaMetadata,
+        tag: CURRENT_TAG,
+      };
+
+      await storage.data.put('mediaitem-' + res.mediaItems[i].id, JSON.stringify(value));
       console.log('Downloaded: ' + res.mediaItems[i].id + '[' + score.length + '] - ');
     } else {
       let value = JSON.parse(record);
-      value.path = res.mediaItems[i].baseUrl + '=w521-h512';
 
-      if (!value.productUrl) {
-        value.productUrl = res.mediaItems[i].productUrl;
-      }
-      if (!value.mediaMetadata) {
-        value.mediaMetadata = res.mediaItems[i].mediaMetadata;
-      }
+      value.path = res.mediaItems[i].baseUrl + '=w521-h512';
+      value.mediaMetadata = res.mediaItems[i].mediaMetadata;
+      value.tag = CURRENT_TAG;
 
       await storage.data.put('mediaitem-' + res.mediaItems[i].id, JSON.stringify(value));
     }
+  }
+}
+
+async function clearOld() {
+  var count = 0;
+  try {
+    it = storage.data.createReadStream();
+    it.on('data', async function (data) {
+      if (data.key.substring(0, 9) != 'mediaitem') return;
+
+      const value = JSON.parse(data.value);
+
+      if (value.tag != CURRENT_TAG) {
+        console.log('delete old record: ' + data.key);
+        await storage.data.del(data.key);
+        return;
+      }
+
+      count++;
+    });
+    it.on('error', function (err) {
+      console.error('Oh my!', err);
+    });
+    it.on('end', function () {
+      console.log('Total photos: ' + count);
+    });
+  } catch (err) {
+    console.log('Opps!', err);
   }
 }
 
@@ -222,4 +253,5 @@ const scopes = ['https://www.googleapis.com/auth/userinfo.profile', 'https://www
 authenticate(scopes)
   .then(() => login())
   .then(() => start())
+  .then(() => clearOld())
   .catch(console.error);

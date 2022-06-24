@@ -1,6 +1,4 @@
 const storage = require('./storage');
-const { distance } = require('mathjs');
-const { EOL } = require('os');
 
 // *********
 // Functions
