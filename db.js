@@ -10,8 +10,8 @@ async function start() {
   var count = 0;
 
   try {
-    it = storage.data.createReadStream();
-    it.on('data', async function (data) {
+
+    for await (const record of storage.data.iterator()) {
       // if (data.key.substring(0, 9) != 'mediaitem') return;
 
       // const value = JSON.parse(data.value);
@@ -23,13 +23,9 @@ async function start() {
       // }
 
       count++;
-    });
-    it.on('error', function (err) {
-      console.error('Oh my!', err);
-    });
-    it.on('end', function () {
-      console.log('Done: ' + count);
-    });
+    }
+
+    console.log('Done: ' + count);
   } catch (err) {
     console.log('Opps!', err);
   }

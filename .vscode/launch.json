@@ -21,6 +21,15 @@
         "<node_internals>/**"
       ],
       "type": "pwa-node",
+    },
+    {
+      "name": "Run DB",
+      "program": "${workspaceFolder}/db.js",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "pwa-node",
     }
   ]
 }

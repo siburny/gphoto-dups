@@ -210,26 +210,19 @@ async function store_results(res) {
 async function clearOld() {
   var count = 0;
   try {
-    it = storage.data.createReadStream();
-    it.on('data', async function (data) {
-      if (data.key.substring(0, 9) != 'mediaitem') return;
+    for await (const [data_key, data_value] of storage.data.iterator()) {
+      if (data_key.substring(0, 9) != 'mediaitem') continue;
 
-      const value = JSON.parse(data.value);
+      const value = JSON.parse(data_value);
 
       if (value.tag != CURRENT_TAG) {
-        console.log('delete old record: ' + data.key);
-        await storage.data.del(data.key);
-        return;
+        console.log('delete old record: ' + data_key);
+        //await storage.data.del(data_key);
+        continue;
       }
 
       count++;
-    });
-    it.on('error', function (err) {
-      console.error('Oh my!', err);
-    });
-    it.on('end', function () {
-      console.log('Total photos: ' + count);
-    });
+    }
   } catch (err) {
     console.log('Opps!', err);
   }
