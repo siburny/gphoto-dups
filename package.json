@@ -5,10 +5,10 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "dependencies": {
-    "googleapis": "^67.1.0",
+    "googleapis": "^109.0.0",
     "googlephotos": "github:siburny/google-photos",
     "level": "^8.0.0",
-    "mathjs": "^10.1.1",
+    "mathjs": "^11.3.2",
     "server-destroy": "^1.0.1"
   }
 }

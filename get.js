@@ -2,6 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const storage = require('./storage');
 const Photos = require('googlephotos');
+const GDate = require('googlephotos/lib/common/gdate');
 const http = require('http');
 const url = require('url');
 const destroyer = require('server-destroy');
@@ -9,6 +10,8 @@ const exec = require('child_process').execSync;
 const IM = '"c:\\Program Files\\ImageMagick-7.1.0-Q16-HDRI\\convert.exe"';
 
 const { google } = require('googleapis');
+
+const YEAR = 2019;
 
 let keys = {
   client_id: '',
@@ -79,7 +82,7 @@ async function authenticate(scopes) {
         }
       })
       .listen(3000, () => {
-        console.log("Login URL: ", authorizeUrl);
+        console.log('Login URL: ', authorizeUrl);
       });
     destroyer(server);
   });
@@ -94,9 +97,10 @@ async function start() {
   const mediaTypeFilter = new photos.MediaTypeFilter(photos.MediaType.PHOTO);
   filters.setMediaTypeFilter(mediaTypeFilter);
 
-  // const dateFilter = new photos.DateFilter();
-  // dateFilter.addRange(new Date('2020/09/01'), new Date('2020/10/8'));
-  // filters.setDateFilter(dateFilter);
+  const dateFilter = new photos.DateFilter();
+  // YEAR
+  dateFilter.addDate(new GDate(YEAR, 0, 0));
+  filters.setDateFilter(dateFilter);
 
   let count = 0;
 
@@ -129,7 +133,7 @@ async function start() {
     }
 
     if ('mediaItems' in res) {
-      console.log('Recieved: ' + res.mediaItems.length);
+      //console.log('Recieved: ' + res.mediaItems.length);
 
       count += res.mediaItems.length;
 
@@ -152,7 +156,7 @@ async function start() {
     }
 
     await timeout(100);
-    console.log('Current count: :' + count);
+    console.log('Iteration count: ' + count);
   } while (true);
 }
 
@@ -188,18 +192,20 @@ async function store_results(res) {
 
       let value = {
         score: score,
-        path: res.mediaItems[i].baseUrl + '=w521-h512',
+        path: res.mediaItems[i].baseUrl + '=w512-h512',
         mediaMetadata: res.mediaItems[i].mediaMetadata,
+        productUrl: res.mediaItems[i].productUrl,
         tag: CURRENT_TAG,
       };
 
       await storage.data.put('mediaitem-' + res.mediaItems[i].id, JSON.stringify(value));
-      console.log('Downloaded: ' + res.mediaItems[i].id + '[' + score.length + '] - ');
+      console.log('New file downloaded: ' + res.mediaItems[i].id + '[' + score.length + '] - ');
     } else {
       let value = JSON.parse(record);
 
-      value.path = res.mediaItems[i].baseUrl + '=w521-h512';
+      value.path = res.mediaItems[i].baseUrl + '=w512-h512';
       value.mediaMetadata = res.mediaItems[i].mediaMetadata;
+      value.productUrl = res.mediaItems[i].productUrl;
       value.tag = CURRENT_TAG;
 
       await storage.data.put('mediaitem-' + res.mediaItems[i].id, JSON.stringify(value));
@@ -217,7 +223,7 @@ async function clearOld() {
 
       if (value.tag != CURRENT_TAG) {
         console.log('delete old record: ' + data_key);
-        //await storage.data.del(data_key);
+        await storage.data.del(data_key);
         continue;
       }
 
