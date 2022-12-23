@@ -11,7 +11,7 @@ const IM = '"c:\\Program Files\\ImageMagick-7.1.0-Q16-HDRI\\convert.exe"';
 
 const { google } = require('googleapis');
 
-const YEAR = 2019;
+const YEAR = 2022;
 
 let keys = {
   client_id: '',
