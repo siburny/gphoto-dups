@@ -3,7 +3,7 @@ const { distance } = require('mathjs');
 const fs = require('fs');
 const { EOL } = require('os');
 
-const LEVELS = [1000, 1500, 2500, 3500, 5000];
+const LEVELS = [1000, 1500, 2500, 3500, 5000, 7500, 10000];
 
 // *********
 // Functions
@@ -17,13 +17,15 @@ async function start() {
     '<html><body><h1>Dups</h1><table border="1"><th style="width:50px;">d</th><th>First</th><th>Dup</th>'
   );
 
-  var full_file = fs.readFileSync('output.json').toString().split('\n');
-  for (let line of full_file) {
-    try {
-      let json = JSON.parse(line);
-      db.push(json.id);
-    } catch (err) {}
-  }
+  try {
+    var full_file = fs.readFileSync('output.json').toString().split('\n');
+    for (let line of full_file) {
+      try {
+        let json = JSON.parse(line);
+        db.push(json.id);
+      } catch (err) { }
+    }
+  } catch (err) { }
 
   const ret = [];
 
@@ -49,8 +51,8 @@ async function start() {
     console.log('Loaded: ' + ret.length + ' photos');
 
     for (let level = 0; level < LEVELS.length; level++) {
-        let searchStatus = await search(ret, LEVELS[level]);
-        if(searchStatus) break;
+      let searchStatus = await search(ret, LEVELS[level]);
+      if (searchStatus) break;
     }
   } catch (err) {
     console.log('Opps!', err);
@@ -73,29 +75,29 @@ async function search(ret, limit) {
           fs.appendFileSync(
             'output.html',
             '<tr><td>' +
-              d +
-              '</td><td><a target="_blank" href="' +
-              ret[q1].productUrl +
-              '"><img ' +
-              (found1 ? 'style="border: 20px solid green"' : '') +
-              ' src="' +
-              ret[q1].path +
-              '" width="250" /></a></td><td><a target="_blank" href="' +
-              ret[q2].productUrl +
-              '"><img ' +
-              (found2 ? 'style="border: 20px solid green"' : '') +
-              ' src="' +
-              ret[q2].path +
-              '" width="250" /></a></td><td>' +
-              q1 +
-              '</td></tr>' +
-              EOL
+            d +
+            '</td><td><a target="_blank" href="' +
+            ret[q1].productUrl +
+            '"><img ' +
+            (found1 ? 'style="border: 20px solid green"' : '') +
+            ' src="' +
+            ret[q1].path +
+            '" width="250" /></a></td><td><a target="_blank" href="' +
+            ret[q2].productUrl +
+            '"><img ' +
+            (found2 ? 'style="border: 20px solid green"' : '') +
+            ' src="' +
+            ret[q2].path +
+            '" width="250" /></a></td><td>' +
+            q1 +
+            '</td></tr>' +
+            EOL
           );
 
           try {
             await storage.data.del(ret[q1].key);
             await storage.data.del(ret[q2].key);
-          } catch (e) {}
+          } catch (e) { }
 
           total_found++;
           if (total_found > 15) {
