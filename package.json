@@ -5,7 +5,7 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "dependencies": {
-    "googleapis": "^110.0.0",
+    "googleapis": "^113.0.0",
     "googlephotos": "github:siburny/google-photos",
     "level": "^8.0.0",
     "mathjs": "^11.5.0",
