@@ -52,7 +52,10 @@ async function start() {
 
     for (let level = 0; level < LEVELS.length; level++) {
       let searchStatus = await search(ret, LEVELS[level]);
-      if (searchStatus) break;
+      if (searchStatus) {
+		console.log('Done searching.');
+		break;
+	  }
     }
   } catch (err) {
     console.log('Opps!', err);
@@ -112,8 +115,11 @@ async function search(ret, limit) {
     }
   }
 
-  console.log('Done searching.');
-  return 0;
+  if(total_found > 0) {
+     return 1;
+  } else {
+    return 0;
+  }
 }
 
 start();
